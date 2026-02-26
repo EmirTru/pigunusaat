@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sola Akan Pi Animasyonu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .screen {
+            width: 300px;
+            height: 360px;
+            background: #000;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 45px;
+            overflow: hidden;
+            box-shadow: inset 0 0 50px rgba(0, 242, 255, 0.15);
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .ui-center {
+            z-index: 50;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* Pi işaretini biraz yukarı aldık */
+            margin-top: -40px; 
+        }
+
+        .pi-svg {
+            width: 130px;
+            height: 130px;
+            fill: #00f2ff;
+            filter: drop-shadow(0 0 20px rgba(0, 242, 255, 0.8));
+            animation: breathe 3s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="screen">
+        <canvas id="flow-canvas"></canvas>
+
+        <div class="ui-center">
+            <svg class="pi-svg" viewBox="0 0 512 512">
+                <path d="M420,120 Q420,100 380,100 L120,100 Q80,100 80,140 L90,160 Q120,160 140,140 L160,320 Q170,400 120,420 L130,440 Q220,440 220,320 L220,160 L280,160 L280,350 Q280,440 340,440 Q400,440 400,380 L380,380 Q380,410 350,410 Q320,410 320,350 L320,160 L380,160 Q420,160 420,120 Z" />
+            </svg>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('flow-canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = 300;
+        canvas.height = 360;
+
+        // Pi sayısı ve döngü için ekstra boşluk ekledik
+        const piString = "3.1415926535897932384626433832795028841971";
+        const loopGap = "     "; // Döngü arası boşluk (5 boşluk)
+        const fullString = piString + loopGap;
+        
+        const digits = [];
+        const spacing = 35; // Rakamlar arası mesafe
+        const startX = canvas.width; // Ekranın sağından başla
+        
+        fullString.split('').forEach((char, i) => {
+            digits.push({
+                char: char,
+                x: startX + (i * spacing),
+                y: canvas.height / 2 + 100, // Sayıları biraz aşağıda tuttuk
+                alpha: 1,
+                fontSize: 28
+            });
+        });
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            digits.forEach((d) => {
+                d.x -= 2; // Akış hızı
+
+                // Merkeze göre şeffaflık (yok olma etkisi)
+                const distFromCenter = Math.abs(d.x - canvas.width / 2);
+                d.alpha = Math.max(0, 1 - (distFromCenter / 140));
+
+                if (d.alpha > 0 && d.char !== " ") {
+                    ctx.save();
+                    ctx.globalAlpha = d.alpha;
+                    ctx.fillStyle = '#7d00ff';
+                    ctx.font = `900 ${d.fontSize}px Orbitron`;
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#7d00ff';
+                    ctx.fillText(d.char, d.x, d.y);
+                    ctx.restore();
+                }
+
+                // Döngü mantığı: En sol noktaya ulaşınca en sağa atar
+                const totalWidth = fullString.length * spacing;
+                if (d.x < -spacing) {
+                    d.x += totalWidth;
+                }
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
