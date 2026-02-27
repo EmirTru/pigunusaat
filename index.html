@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sola Akan Pi Animasyonu</title>
+    <title>Sonsuz Pi Satır Simülasyonu</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@500&display=swap');
 
         body {
             margin: 0;
@@ -17,7 +17,8 @@
             align-items: center;
             height: 100vh;
             overflow: hidden;
-            font-family: 'Orbitron', sans-serif;
+            font-family: 'JetBrains+Mono', monospace;
+            touch-action: none;
         }
 
         .screen {
@@ -25,12 +26,9 @@
             height: 360px;
             background: #000;
             position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             border-radius: 45px;
             overflow: hidden;
-            box-shadow: inset 0 0 50px rgba(0, 242, 255, 0.15);
+            border: 2px solid #1a1a1a;
         }
 
         canvas {
@@ -41,101 +39,217 @@
             height: 100%;
         }
 
-        .ui-center {
-            z-index: 50;
-            pointer-events: none;
+        /* Giriş Ekranı Tasarımı */
+        #intro-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 100;
             display: flex;
             flex-direction: column;
+            justify-content: center;
             align-items: center;
-            /* Pi işaretini biraz yukarı aldık */
-            margin-top: -40px; 
+            padding: 25px;
+            text-align: center;
         }
 
-        .pi-svg {
-            width: 130px;
-            height: 130px;
-            fill: #00f2ff;
-            filter: drop-shadow(0 0 20px rgba(0, 242, 255, 0.8));
-            animation: breathe 3s ease-in-out infinite;
+        .pi-note {
+            font-family: 'Orbitron';
+            color: #7d00ff;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.5;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(125, 0, 255, 0.7);
         }
 
-        @keyframes breathe {
-            0%, 100% { transform: scale(1); opacity: 0.9; }
-            50% { transform: scale(1.05); opacity: 1; }
+        .play-btn {
+            background: rgba(0, 242, 255, 0.1);
+            border: 3px solid #00f2ff;
+            color: #00f2ff;
+            padding: 12px 35px;
+            font-family: 'Orbitron';
+            font-weight: 900;
+            font-size: 18px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+            text-transform: uppercase;
+        }
+
+        .play-btn:active {
+            transform: scale(0.9);
+            background: #00f2ff;
+            color: #000;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(125, 0, 255, 0.05) 50%, rgba(0, 0, 0, 0) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Geri Tuşu Olan Pi Sembolü */
+        .pi-symbol-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-family: 'Orbitron';
+            color: #00f2ff;
+            font-size: 28px;
+            font-weight: 900;
+            opacity: 0.8;
+            z-index: 110; /* Intro screen'in üstünde veya altında kalması duruma göre ayarlanır */
+            text-shadow: 0 0 10px #00f2ff;
+            cursor: pointer;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            display: none; /* Sadece simülasyon başvuğunda görünsün */
+        }
+
+        .pi-symbol-btn:active {
+            transform: scale(1.2);
+            opacity: 1;
         }
     </style>
 </head>
 <body>
 
-    <div class="screen">
-        <canvas id="flow-canvas"></canvas>
-
-        <div class="ui-center">
-            <svg class="pi-svg" viewBox="0 0 512 512">
-                <path d="M420,120 Q420,100 380,100 L120,100 Q80,100 80,140 L90,160 Q120,160 140,140 L160,320 Q170,400 120,420 L130,440 Q220,440 220,320 L220,160 L280,160 L280,350 Q280,440 340,440 Q400,440 400,380 L380,380 Q380,410 350,410 Q320,410 320,350 L320,160 L380,160 Q420,160 420,120 Z" />
-            </svg>
+    <div class="screen" id="main-screen">
+        <!-- Giriş Paneli -->
+        <div id="intro-screen">
+            <div class="pi-note">
+                SONSUZ DÖNGÜNÜN <br> GİZEMİNE <br> HOŞ GELDİN
+            </div>
+            <button class="play-btn" onclick="startSim()">OYNA</button>
         </div>
+
+        <div class="overlay"></div>
+        <!-- Geri Tuşu (Pi Sembolü) -->
+        <div class="pi-symbol-btn" id="back-btn" onclick="goBack()">π</div>
+        <canvas id="matrix-canvas"></canvas>
     </div>
 
     <script>
-        const canvas = document.getElementById('flow-canvas');
+        const canvas = document.getElementById('matrix-canvas');
         const ctx = canvas.getContext('2d');
+        const intro = document.getElementById('intro-screen');
+        const backBtn = document.getElementById('back-btn');
 
-        canvas.width = 300;
-        canvas.height = 360;
+        const VIEW_WIDTH = 300;
+        const VIEW_HEIGHT = 360;
 
-        // Pi sayısı ve döngü için ekstra boşluk ekledik
-        const piString = "3.1415926535897932384626433832795028841971";
-        const loopGap = "     "; // Döngü arası boşluk (5 boşluk)
-        const fullString = piString + loopGap;
-        
-        const digits = [];
-        const spacing = 35; // Rakamlar arası mesafe
-        const startX = canvas.width; // Ekranın sağından başla
-        
-        fullString.split('').forEach((char, i) => {
-            digits.push({
-                char: char,
-                x: startX + (i * spacing),
-                y: canvas.height / 2 + 100, // Sayıları biraz aşağıda tuttuk
-                alpha: 1,
-                fontSize: 28
-            });
-        });
-
-        function animate() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            digits.forEach((d) => {
-                d.x -= 2; // Akış hızı
-
-                // Merkeze göre şeffaflık (yok olma etkisi)
-                const distFromCenter = Math.abs(d.x - canvas.width / 2);
-                d.alpha = Math.max(0, 1 - (distFromCenter / 140));
-
-                if (d.alpha > 0 && d.char !== " ") {
-                    ctx.save();
-                    ctx.globalAlpha = d.alpha;
-                    ctx.fillStyle = '#7d00ff';
-                    ctx.font = `900 ${d.fontSize}px Orbitron`;
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = '#7d00ff';
-                    ctx.fillText(d.char, d.x, d.y);
-                    ctx.restore();
-                }
-
-                // Döngü mantığı: En sol noktaya ulaşınca en sağa atar
-                const totalWidth = fullString.length * spacing;
-                if (d.x < -spacing) {
-                    d.x += totalWidth;
-                }
-            });
-
-            requestAnimationFrame(animate);
+        function setupCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = VIEW_WIDTH * dpr;
+            canvas.height = VIEW_HEIGHT * dpr;
+            ctx.scale(dpr, dpr);
+            canvas.style.width = `${VIEW_WIDTH}px`;
+            canvas.style.height = `${VIEW_HEIGHT}px`;
         }
 
-        animate();
+        window.onload = setupCanvas;
+
+        const piDigits = "3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117067982148086513282306647093844609550582231725359408128481117450284102701938521105559644622948954930381964428810975665933446128475648233786783165271201909145648566923460348610454326648213393607260249141273";
+        
+        const fontSize = 24; 
+        const charWidth = fontSize * 0.6;
+        const columns = Math.floor(VIEW_WIDTH / charWidth) - 1;
+        const maxRows = Math.floor((VIEW_HEIGHT - 60) / (fontSize * 1.2));
+        const maxVisibleDigits = columns * maxRows;
+        
+        let visibleDigits = [];
+        let nextPiIndex = 0;
+        let frame = 0;
+        let isRunning = false;
+        let isResetting = false;
+
+        function startSim() {
+            intro.style.display = 'none';
+            backBtn.style.display = 'block';
+            isRunning = true;
+            draw();
+        }
+
+        function goBack() {
+            isRunning = false;
+            intro.style.display = 'flex';
+            backBtn.style.display = 'none';
+            // Simülasyon verilerini temizle
+            visibleDigits = [];
+            nextPiIndex = 0;
+            frame = 0;
+            ctx.clearRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+        }
+
+        canvas.addEventListener('mousedown', reset);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); reset(); });
+
+        function reset() {
+            if (isResetting || !isRunning) return;
+            isResetting = true;
+            ctx.fillStyle = '#00f2ff';
+            ctx.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+            
+            setTimeout(() => {
+                visibleDigits = [];
+                nextPiIndex = 0;
+                frame = 0;
+                ctx.clearRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+                isResetting = false;
+            }, 150);
+        }
+
+        function draw() {
+            if (!isRunning) return;
+            
+            if (!isResetting) {
+                if (frame % 8 === 0) {
+                    if (visibleDigits.length >= maxVisibleDigits) {
+                        visibleDigits.shift();
+                    }
+
+                    visibleDigits.push(piDigits[nextPiIndex % piDigits.length]);
+                    nextPiIndex++;
+
+                    ctx.clearRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+                    
+                    visibleDigits.forEach((char, i) => {
+                        const col = i % columns;
+                        const row = Math.floor(i / columns);
+                        
+                        const x = col * charWidth + 15;
+                        const y = row * (fontSize * 1.2) + fontSize + 20;
+
+                        ctx.shadowBlur = 12;
+                        
+                        if (nextPiIndex <= maxVisibleDigits && i < 4) {
+                            ctx.fillStyle = '#00f2ff';
+                            ctx.shadowColor = '#00f2ff';
+                        } else {
+                            ctx.fillStyle = '#7d00ff';
+                            ctx.shadowColor = '#7d00ff';
+                        }
+
+                        ctx.font = `bold ${fontSize}px 'JetBrains Mono'`;
+                        ctx.fillText(char, x, y);
+                    });
+                }
+                frame++;
+            }
+            requestAnimationFrame(draw);
+        }
     </script>
 </body>
 </html>
