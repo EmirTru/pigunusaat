@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sonsuz Pi Satır Simülasyonu</title>
+    <title>Sonsuz Animasyonlu Pi Hesaplayıcı</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@500&display=swap');
@@ -39,7 +39,6 @@
             height: 100%;
         }
 
-        /* Giriş Ekranı Tasarımı */
         #intro-screen {
             position: absolute;
             top: 0;
@@ -83,12 +82,6 @@
             text-transform: uppercase;
         }
 
-        .play-btn:active {
-            transform: scale(0.9);
-            background: #00f2ff;
-            color: #000;
-        }
-
         .overlay {
             position: absolute;
             top: 0;
@@ -101,7 +94,6 @@
             z-index: 10;
         }
 
-        /* Geri Tuşu Olan Pi Sembolü */
         .pi-symbol-btn {
             position: absolute;
             top: 20px;
@@ -111,32 +103,24 @@
             font-size: 28px;
             font-weight: 900;
             opacity: 0.8;
-            z-index: 110; /* Intro screen'in üstünde veya altında kalması duruma göre ayarlanır */
+            z-index: 110;
             text-shadow: 0 0 10px #00f2ff;
             cursor: pointer;
-            transition: transform 0.2s ease, opacity 0.2s ease;
-            display: none; /* Sadece simülasyon başvuğunda görünsün */
-        }
-
-        .pi-symbol-btn:active {
-            transform: scale(1.2);
-            opacity: 1;
+            display: none;
         }
     </style>
 </head>
 <body>
 
     <div class="screen" id="main-screen">
-        <!-- Giriş Paneli -->
         <div id="intro-screen">
             <div class="pi-note">
-                SONSUZ DÖNGÜNÜN <br> GİZEMİNE <br> HOŞ GELDİN
+                HESAPLANIYOR VE <br> KAYDIRILIYOR... <br> HAZIR MISIN?
             </div>
-            <button class="play-btn" onclick="startSim()">OYNA</button>
+            <button class="play-btn" onclick="startSim()">HESAPLA</button>
         </div>
 
         <div class="overlay"></div>
-        <!-- Geri Tuşu (Pi Sembolü) -->
         <div class="pi-symbol-btn" id="back-btn" onclick="goBack()">π</div>
         <canvas id="matrix-canvas"></canvas>
     </div>
@@ -161,24 +145,50 @@
 
         window.onload = setupCanvas;
 
-        const piDigits = "3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117067982148086513282306647093844609550582231725359408128481117450284102701938521105559644622948954930381964428810975665933446128475648233786783165271201909145648566923460348610454326648213393607260249141273";
-        
+        function* generatePiDigits() {
+            let q = 1n, r = 0n, t = 1n, k = 1n, n = 3n, l = 3n;
+            while (true) {
+                if (4n * q + r - t < n * t) {
+                    yield Number(n);
+                    let nr = 10n * (r - n * t);
+                    n = ((10n * (3n * q + r)) / t) - 10n * n;
+                    q *= 10n;
+                    r = nr;
+                } else {
+                    let nr = (2n * q + r) * l;
+                    let nn = (q * (7n * k + 2n) + r * l) / (t * l);
+                    q *= k;
+                    t *= l;
+                    l += 2n;
+                    k += 1n;
+                    n = nn;
+                    r = nr;
+                }
+            }
+        }
+
+        let piGenerator = generatePiDigits();
         const fontSize = 24; 
         const charWidth = fontSize * 0.6;
         const columns = Math.floor(VIEW_WIDTH / charWidth) - 1;
-        const maxRows = Math.floor((VIEW_HEIGHT - 60) / (fontSize * 1.2));
-        const maxVisibleDigits = columns * maxRows;
+        const lineHeight = fontSize * 1.2;
+        const maxRows = Math.floor((VIEW_HEIGHT - 60) / lineHeight);
         
-        let visibleDigits = [];
-        let nextPiIndex = 0;
+        let digits = []; // Tüm hesaplanan basamaklar
         let frame = 0;
         let isRunning = false;
         let isResetting = false;
+        let scrollY = 0; // Kaydırma animasyonu için
+        let targetScrollY = 0;
 
         function startSim() {
             intro.style.display = 'none';
             backBtn.style.display = 'block';
             isRunning = true;
+            digits = [];
+            scrollY = 0;
+            targetScrollY = 0;
+            piGenerator = generatePiDigits();
             draw();
         }
 
@@ -186,10 +196,7 @@
             isRunning = false;
             intro.style.display = 'flex';
             backBtn.style.display = 'none';
-            // Simülasyon verilerini temizle
-            visibleDigits = [];
-            nextPiIndex = 0;
-            frame = 0;
+            digits = [];
             ctx.clearRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
         }
 
@@ -201,10 +208,11 @@
             isResetting = true;
             ctx.fillStyle = '#00f2ff';
             ctx.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
-            
             setTimeout(() => {
-                visibleDigits = [];
-                nextPiIndex = 0;
+                digits = [];
+                scrollY = 0;
+                targetScrollY = 0;
+                piGenerator = generatePiDigits();
                 frame = 0;
                 ctx.clearRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
                 isResetting = false;
@@ -215,37 +223,58 @@
             if (!isRunning) return;
             
             if (!isResetting) {
+                // Yeni basamak ekleme hızı
                 if (frame % 8 === 0) {
-                    if (visibleDigits.length >= maxVisibleDigits) {
-                        visibleDigits.shift();
+                    const nextDigit = piGenerator.next().value;
+                    digits.push(nextDigit.toString());
+
+                    // Satır doldukça kaydırma hedefini güncelle
+                    const currentRowCount = Math.ceil(digits.length / columns);
+                    if (currentRowCount > maxRows) {
+                        targetScrollY = (currentRowCount - maxRows) * lineHeight;
+                    }
+                }
+
+                // Yumuşak kaydırma animasyonu (Easing)
+                scrollY += (targetScrollY - scrollY) * 0.1;
+
+                ctx.clearRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+                
+                digits.forEach((digit, i) => {
+                    const col = i % columns;
+                    const row = Math.floor(i / columns);
+                    
+                    const x = col * charWidth + 15;
+                    const y = row * lineHeight + fontSize + 20 - scrollY;
+
+                    // Ekran dışına çıkanları çizmeyerek performansı koru
+                    if (y < -fontSize || y > VIEW_HEIGHT + fontSize) return;
+
+                    // Kenarlarda yumuşak silinme (Fade effect)
+                    let opacity = 1;
+                    if (y < 60) opacity = Math.max(0, (y - 20) / 40);
+                    if (y > VIEW_HEIGHT - 40) opacity = Math.max(0, (VIEW_HEIGHT - y) / 40);
+
+                    ctx.globalAlpha = opacity;
+                    ctx.shadowBlur = 12 * opacity;
+                    
+                    const isFirst = (i === 0);
+                    if (isFirst) {
+                        ctx.fillStyle = '#00f2ff';
+                        ctx.shadowColor = '#00f2ff';
+                    } else {
+                        ctx.fillStyle = '#7d00ff';
+                        ctx.shadowColor = '#7d00ff';
                     }
 
-                    visibleDigits.push(piDigits[nextPiIndex % piDigits.length]);
-                    nextPiIndex++;
+                    ctx.font = `bold ${fontSize}px 'JetBrains Mono'`;
+                    ctx.fillText(digit, x, y);
 
-                    ctx.clearRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
-                    
-                    visibleDigits.forEach((char, i) => {
-                        const col = i % columns;
-                        const row = Math.floor(i / columns);
-                        
-                        const x = col * charWidth + 15;
-                        const y = row * (fontSize * 1.2) + fontSize + 20;
-
-                        ctx.shadowBlur = 12;
-                        
-                        if (nextPiIndex <= maxVisibleDigits && i < 4) {
-                            ctx.fillStyle = '#00f2ff';
-                            ctx.shadowColor = '#00f2ff';
-                        } else {
-                            ctx.fillStyle = '#7d00ff';
-                            ctx.shadowColor = '#7d00ff';
-                        }
-
-                        ctx.font = `bold ${fontSize}px 'JetBrains Mono'`;
-                        ctx.fillText(char, x, y);
-                    });
-                }
+                    if (isFirst) {
+                        ctx.fillText(".", x + 12, y);
+                    }
+                });
+                ctx.globalAlpha = 1.0;
                 frame++;
             }
             requestAnimationFrame(draw);
