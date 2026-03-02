@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sonsuz Animasyonlu Pi Hesaplayıcı</title>
+    <title>Umaker Pi Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@500&display=swap');
@@ -11,273 +11,288 @@
         body {
             margin: 0;
             padding: 0;
-            background-color: #000;
+            background-color: #050505;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             overflow: hidden;
             font-family: 'JetBrains+Mono', monospace;
+            color: white;
             touch-action: none;
         }
 
-        .screen {
-            width: 300px;
-            height: 360px;
+        .watch-frame {
+            width: 320px;
+            height: 400px;
             background: #000;
             position: relative;
-            border-radius: 45px;
+            border-radius: 50px;
             overflow: hidden;
-            border: 2px solid #1a1a1a;
+            border: 4px solid #1a1a1a;
+            box-shadow: 0 0 30px rgba(125, 0, 255, 0.2);
         }
 
-        canvas {
+        #menu {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        #intro-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
             background: #000;
             z-index: 100;
             display: flex;
             flex-direction: column;
+            padding: 20px;
             justify-content: center;
-            align-items: center;
-            padding: 25px;
+        }
+
+        .menu-header {
+            font-family: 'Orbitron';
+            font-size: 20px;
+            color: #00f2ff;
             text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #00f2ff;
+        }
+
+        .game-card {
+            background: #111;
+            border: 2px solid #333;
+            border-radius: 20px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: center;
+        }
+
+        .game-card:hover {
+            border-color: #7d00ff;
+            background: #1a1a1a;
+            transform: scale(1.05);
+        }
+
+        .game-card h3 {
+            font-family: 'Orbitron';
+            font-size: 16px;
+            color: #7d00ff;
+            text-transform: uppercase;
+        }
+
+        .game-container {
+            display: none;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            z-index: 200;
+            color: #ff0055;
+            font-family: 'Orbitron';
+            font-size: 24px;
+            cursor: pointer;
+            text-shadow: 0 0 10px #ff0055;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:active {
+            transform: scale(0.8);
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            z-index: 200;
+            color: #00f2ff;
+            font-family: 'Orbitron';
+            font-size: 28px;
+            cursor: pointer;
+            text-shadow: 0 0 15px #00f2ff;
+            transition: all 0.2s ease;
+        }
+
+        .back-btn:active {
+            transform: scale(1.5) rotate(20deg);
+            color: #fff;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(125, 0, 255, 0.05) 50%, rgba(0, 0, 0, 0) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        #pi-intro {
+            position: absolute;
+            width: 100%; height: 100%;
+            background: #000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 150; text-align: center; padding: 25px;
         }
 
         .pi-note {
             font-family: 'Orbitron';
             color: #7d00ff;
             font-size: 16px;
-            font-weight: 700;
-            line-height: 1.5;
+            font-weight: 900;
             margin-bottom: 40px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 0 15px rgba(125, 0, 255, 0.7);
+            text-shadow: 0 0 10px #7d00ff;
         }
 
-        .play-btn {
-            background: rgba(0, 242, 255, 0.1);
-            border: 3px solid #00f2ff;
-            color: #00f2ff;
-            padding: 12px 35px;
+        .credits {
             font-family: 'Orbitron';
-            font-weight: 900;
-            font-size: 18px;
-            border-radius: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
-            text-transform: uppercase;
+            font-size: 14px;
+            color: #666;
+            margin-top: 30px;
+            text-align: center;
+            border-top: 1px solid #222;
+            padding-top: 15px;
         }
 
-        .overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(rgba(125, 0, 255, 0.05) 50%, rgba(0, 0, 0, 0) 50%);
-            background-size: 100% 4px;
-            pointer-events: none;
-            z-index: 10;
-        }
-
-        .pi-symbol-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            font-family: 'Orbitron';
+        .credits span {
             color: #00f2ff;
-            font-size: 28px;
-            font-weight: 900;
-            opacity: 0.8;
-            z-index: 110;
-            text-shadow: 0 0 10px #00f2ff;
-            cursor: pointer;
-            display: none;
+            font-weight: bold;
+            display: block;
+            margin-top: 5px;
+            font-size: 16px;
+            text-shadow: 0 0 5px rgba(0, 242, 255, 0.5);
         }
     </style>
 </head>
 <body>
 
-    <div class="screen" id="main-screen">
-        <div id="intro-screen">
-            <div class="pi-note">
-                HESAPLANIYOR VE <br> KAYDIRILIYOR... <br> HAZIR MISIN?
+    <div class="watch-frame">
+        <div class="overlay" id="global-overlay"></div>
+
+        <!-- ANA MENÜ -->
+        <div id="menu">
+            <div class="menu-header">PI SYSTEM PRO</div>
+            <div class="game-card" onclick="openGame()">
+                <h3>π HESAPLAYICI</h3>
+                <p class="text-[10px] text-gray-400 mt-2">Başlatmak için dokun.</p>
             </div>
-            <button class="play-btn" onclick="startSim()">HESAPLA</button>
+            <div class="credits">
+                YAPIMCILAR
+                <span>Emir ve Nilda 8/B</span>
+            </div>
         </div>
 
-        <div class="overlay"></div>
-        <div class="pi-symbol-btn" id="back-btn" onclick="goBack()">π</div>
-        <canvas id="matrix-canvas"></canvas>
+        <!-- PI EKRANI -->
+        <div id="game1" class="game-container">
+            <div class="close-btn" onclick="exitToMenu()">×</div>
+            <div class="back-btn" onclick="toggleEasterEgg()">π</div>
+            
+            <div id="pi-intro">
+                <div class="pi-note">SONSUZ DÖNGÜYÜ <br> TETİKLE</div>
+                <button onclick="startPi()" class="border-2 border-cyan-400 text-cyan-400 px-8 py-3 font-black text-sm rounded-full shadow-lg shadow-cyan-900/50 hover:bg-cyan-400 hover:text-black transition-all">SİSTEMİ AÇ</button>
+            </div>
+            <canvas id="piCanvas"></canvas>
+        </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('matrix-canvas');
-        const ctx = canvas.getContext('2d');
-        const intro = document.getElementById('intro-screen');
-        const backBtn = document.getElementById('back-btn');
-
-        const VIEW_WIDTH = 300;
-        const VIEW_HEIGHT = 360;
-
-        function setupCanvas() {
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = VIEW_WIDTH * dpr;
-            canvas.height = VIEW_HEIGHT * dpr;
-            ctx.scale(dpr, dpr);
-            canvas.style.width = `${VIEW_WIDTH}px`;
-            canvas.style.height = `${VIEW_HEIGHT}px`;
-        }
-
-        window.onload = setupCanvas;
-
-        function* generatePiDigits() {
-            let q = 1n, r = 0n, t = 1n, k = 1n, n = 3n, l = 3n;
-            while (true) {
-                if (4n * q + r - t < n * t) {
-                    yield Number(n);
-                    let nr = 10n * (r - n * t);
-                    n = ((10n * (3n * q + r)) / t) - 10n * n;
-                    q *= 10n;
-                    r = nr;
-                } else {
-                    let nr = (2n * q + r) * l;
-                    let nn = (q * (7n * k + 2n) + r * l) / (t * l);
-                    q *= k;
-                    t *= l;
-                    l += 2n;
-                    k += 1n;
-                    n = nn;
-                    r = nr;
-                }
-            }
-        }
-
-        let piGenerator = generatePiDigits();
-        const fontSize = 24; 
-        const charWidth = fontSize * 0.6;
-        const columns = Math.floor(VIEW_WIDTH / charWidth) - 1;
-        const lineHeight = fontSize * 1.2;
-        const maxRows = Math.floor((VIEW_HEIGHT - 60) / lineHeight);
+        const piCanvas = document.getElementById('piCanvas');
+        const piCtx = piCanvas.getContext('2d');
+        const overlay = document.getElementById('global-overlay');
         
-        let digits = []; // Tüm hesaplanan basamaklar
-        let frame = 0;
-        let isRunning = false;
-        let isResetting = false;
-        let scrollY = 0; // Kaydırma animasyonu için
-        let targetScrollY = 0;
+        let currentLoop = null;
+        let isEasterEggActive = false;
 
-        function startSim() {
-            intro.style.display = 'none';
-            backBtn.style.display = 'block';
-            isRunning = true;
-            digits = [];
-            scrollY = 0;
-            targetScrollY = 0;
-            piGenerator = generatePiDigits();
-            draw();
+        const piDigitsStr = "3141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117067982148086513282306647093844609550582231725359408128481117450284102701938521105559644622948954930381964428810975665933446128475648233786783165271201909145648566923460348610454326648213393607260249141273";
+        let piVisible = [];
+        let piIndex = 0;
+        let piFrame = 0;
+        let piScrollY = 0;
+        let piTargetY = 0;
+        const fontSize = 24;
+        const lineHeight = fontSize * 1.3;
+        const cols = 6;
+        const maxRows = 8;
+
+        function openGame() {
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('game1').style.display = 'block';
+            piCanvas.width = 320; piCanvas.height = 400;
+            piVisible = []; piIndex = 0; piScrollY = 0; piTargetY = 0;
+            isEasterEggActive = false;
         }
 
-        function goBack() {
-            isRunning = false;
-            intro.style.display = 'flex';
-            backBtn.style.display = 'none';
-            digits = [];
-            ctx.clearRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+        function exitToMenu() {
+            document.getElementById('menu').style.display = 'flex';
+            document.getElementById('game1').style.display = 'none';
+            document.getElementById('pi-intro').style.display = 'flex';
+            isEasterEggActive = false;
+            overlay.style.background = 'linear-gradient(rgba(125, 0, 255, 0.05) 50%, rgba(0, 0, 0, 0) 50%)';
         }
 
-        canvas.addEventListener('mousedown', reset);
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); reset(); });
-
-        function reset() {
-            if (isResetting || !isRunning) return;
-            isResetting = true;
-            ctx.fillStyle = '#00f2ff';
-            ctx.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
-            setTimeout(() => {
-                digits = [];
-                scrollY = 0;
-                targetScrollY = 0;
-                piGenerator = generatePiDigits();
-                frame = 0;
-                ctx.clearRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
-                isResetting = false;
-            }, 150);
-        }
-
-        function draw() {
-            if (!isRunning) return;
-            
-            if (!isResetting) {
-                // Yeni basamak ekleme hızı
-                if (frame % 8 === 0) {
-                    const nextDigit = piGenerator.next().value;
-                    digits.push(nextDigit.toString());
-
-                    // Satır doldukça kaydırma hedefini güncelle
-                    const currentRowCount = Math.ceil(digits.length / columns);
-                    if (currentRowCount > maxRows) {
-                        targetScrollY = (currentRowCount - maxRows) * lineHeight;
-                    }
-                }
-
-                // Yumuşak kaydırma animasyonu (Easing)
-                scrollY += (targetScrollY - scrollY) * 0.1;
-
-                ctx.clearRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
-                
-                digits.forEach((digit, i) => {
-                    const col = i % columns;
-                    const row = Math.floor(i / columns);
-                    
-                    const x = col * charWidth + 15;
-                    const y = row * lineHeight + fontSize + 20 - scrollY;
-
-                    // Ekran dışına çıkanları çizmeyerek performansı koru
-                    if (y < -fontSize || y > VIEW_HEIGHT + fontSize) return;
-
-                    // Kenarlarda yumuşak silinme (Fade effect)
-                    let opacity = 1;
-                    if (y < 60) opacity = Math.max(0, (y - 20) / 40);
-                    if (y > VIEW_HEIGHT - 40) opacity = Math.max(0, (VIEW_HEIGHT - y) / 40);
-
-                    ctx.globalAlpha = opacity;
-                    ctx.shadowBlur = 12 * opacity;
-                    
-                    const isFirst = (i === 0);
-                    if (isFirst) {
-                        ctx.fillStyle = '#00f2ff';
-                        ctx.shadowColor = '#00f2ff';
-                    } else {
-                        ctx.fillStyle = '#7d00ff';
-                        ctx.shadowColor = '#7d00ff';
-                    }
-
-                    ctx.font = `bold ${fontSize}px 'JetBrains Mono'`;
-                    ctx.fillText(digit, x, y);
-
-                    if (isFirst) {
-                        ctx.fillText(".", x + 12, y);
-                    }
-                });
-                ctx.globalAlpha = 1.0;
-                frame++;
+        function toggleEasterEgg() {
+            if (document.getElementById('pi-intro').style.display !== 'none') return;
+            isEasterEggActive = !isEasterEggActive;
+            if (isEasterEggActive) {
+                overlay.style.background = 'radial-gradient(circle, rgba(0, 255, 70, 0.15) 0%, rgba(0, 0, 0, 0) 80%)';
+                piCtx.fillStyle = "white";
+                piCtx.fillRect(0, 0, 320, 400);
+            } else {
+                overlay.style.background = 'linear-gradient(rgba(125, 0, 255, 0.05) 50%, rgba(0, 0, 0, 0) 50%)';
             }
-            requestAnimationFrame(draw);
+        }
+
+        function startPi() {
+            document.getElementById('pi-intro').style.display = 'none';
+            piLoop();
+        }
+
+        function piLoop() {
+            if(document.getElementById('game1').style.display === 'none') return;
+            const updateInterval = isEasterEggActive ? 4 : 8;
+            if(piFrame % updateInterval === 0) {
+                let char = piDigitsStr[piIndex % piDigitsStr.length];
+                piVisible.push({ val: char, hue: (piIndex * 2) % 360 });
+                piIndex++;
+                const rows = Math.ceil(piVisible.length / cols);
+                if(rows > maxRows) piTargetY = (rows - maxRows) * lineHeight;
+            }
+            piScrollY += (piTargetY - piScrollY) * 0.1;
+            piCtx.clearRect(0, 0, 320, 400);
+            piVisible.forEach((item, i) => {
+                const c = i % cols;
+                const r = Math.floor(i / cols);
+                const shakeX = isEasterEggActive ? (Math.random() - 0.5) * 2 : 0;
+                const shakeY = isEasterEggActive ? (Math.random() - 0.5) * 2 : 0;
+                const x = (c * 45 + 35) + shakeX;
+                const y = (r * lineHeight + 60 - piScrollY) + shakeY;
+                if(y < -30 || y > 430) return;
+                let opacity = 1;
+                if(y < 100) opacity = Math.max(0, (y-40)/60);
+                piCtx.globalAlpha = opacity;
+                if (isEasterEggActive) {
+                    piCtx.fillStyle = `hsl(${item.hue + piFrame * 2}, 100%, 50%)`;
+                    piCtx.shadowBlur = 15;
+                    piCtx.shadowColor = piCtx.fillStyle;
+                    piCtx.font = `900 ${fontSize + 4}px 'Orbitron'`;
+                } else {
+                    piCtx.fillStyle = (i === 0) ? "#00f2ff" : "#7d00ff";
+                    piCtx.shadowBlur = 8; piCtx.shadowColor = piCtx.fillStyle;
+                    piCtx.font = `bold ${fontSize}px 'JetBrains Mono'`;
+                }
+                piCtx.fillText(item.val, x, y);
+                if(i === 0 && !isEasterEggActive) piCtx.fillText(".", x+12, y);
+            });
+            piCtx.globalAlpha = 1; piFrame++;
+            currentLoop = requestAnimationFrame(piLoop);
         }
     </script>
 </body>
